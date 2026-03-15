@@ -1,0 +1,62 @@
+[
+  {
+    "id": "u-227c0766",
+    "username": "admin",
+    "name": "Admin User",
+    "email": "admin@securewatch.local",
+    "role": "Admin",
+    "status": "Active",
+    "createdAt": "2026-02-08T01:25:54.485161",
+    "pw_salt": "1bHNAiV5cxi6wKLPRTvnwg==",
+    "pw_hash": "WEYrLSSFj7StAlyk2DHgkmU5DI+umrXYbtyYO35hXnc=",
+    "pw_iters": 120000
+  },
+  {
+    "id": "u-c995ef16",
+    "username": "security",
+    "name": "Security Team",
+    "email": "security@securewatch.local",
+    "role": "Security",
+    "status": "Active",
+    "createdAt": "2026-02-08T01:25:54.588069",
+    "pw_salt": "Omm3ZCQEFkSYa8HoL9PpEA==",
+    "pw_hash": "FP0PrDXVLXJapJrlTpKTfrwLlonzkicD58KLYnbgmQw=",
+    "pw_iters": 120000
+  },
+  {
+    "id": "u-23f52d24",
+    "username": "staff",
+    "name": "Lab Staff",
+    "email": "staff@securewatch.local",
+    "role": "Staff",
+    "status": "Active",
+    "createdAt": "2026-02-08T01:25:54.692057",
+    "pw_salt": "V4y7KRtjh5dOtkz/eaBFTA==",
+    "pw_hash": "gmySMbN3u3h8g/ggetJfephzCW7V/38NAIhWh5ofZ9w=",
+    "pw_iters": 120000
+  },
+  {
+    "id": "u-23459c93",
+    "username": "jinxuan",
+    "name": "Wong Jin Xuan",
+    "email": "wongjinxuan@gmail.com",
+    "role": "Viewer",
+    "status": "Active",
+    "createdAt": "2026-02-08T13:43:05.034182",
+    "pw_salt": "HbNS9+hE4do/UC0TzER4Mw==",
+    "pw_hash": "/Km6oG9Os5clR/YMBze3Fsns5MUf+zFr/S26xngR9s0=",
+    "pw_iters": 120000
+  },
+  {
+    "id": "u-89e16245",
+    "username": "qingying",
+    "name": "Low Qing Ying",
+    "email": "qingying@example.com",
+    "role": "Viewer",
+    "status": "Active",
+    "createdAt": "2026-03-10T23:39:24.318324",
+    "pw_salt": "JnpULLU5k4i4/wtgQkTb3A==",
+    "pw_hash": "uF34IRbFDE+HgFwOuGw6p0eeLYABjvJk5mTiFAIxJ5c=",
+    "pw_iters": 120000
+  }
+]

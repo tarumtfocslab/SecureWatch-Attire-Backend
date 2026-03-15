@@ -1,0 +1,192 @@
+{
+  "vid-6bbca3ea": {
+    "views": [
+      {
+        "name": "entrance",
+        "roll_deg": -105.0,
+        "pitch_deg": -70.0,
+        "fov_deg": 30.0
+      },
+      {
+        "name": "corridor",
+        "roll_deg": -100.0,
+        "pitch_deg": -55.0,
+        "fov_deg": 70.0
+      },
+      {
+        "name": "left_seats",
+        "roll_deg": 180.0,
+        "pitch_deg": -55.0,
+        "fov_deg": 80.0
+      },
+      {
+        "name": "right_seats",
+        "roll_deg": 160.0,
+        "pitch_deg": 45.0,
+        "fov_deg": 80.0
+      }
+    ],
+    "ver": 15
+  },
+  "vid-e3ce90bf": {
+    "views": [
+      {
+        "name": "entrance",
+        "roll_deg": -105.0,
+        "pitch_deg": -70.0,
+        "fov_deg": 40.0
+      },
+      {
+        "name": "corridor",
+        "roll_deg": -100.0,
+        "pitch_deg": -55.0,
+        "fov_deg": 70.0
+      },
+      {
+        "name": "left_seats",
+        "roll_deg": -170.0,
+        "pitch_deg": -45.0,
+        "fov_deg": 70.0
+      },
+      {
+        "name": "right_seats",
+        "roll_deg": 160.0,
+        "pitch_deg": 45.0,
+        "fov_deg": 80.0
+      }
+    ],
+    "ver": 6
+  },
+  "cam01": {
+    "views": [
+      {
+        "name": "entrance",
+        "label": "seat",
+        "roll_deg": -125.0,
+        "pitch_deg": -40.0,
+        "fov_deg": 40.0
+      },
+      {
+        "name": "corridor",
+        "label": "entrance",
+        "roll_deg": -70.0,
+        "pitch_deg": -45.0,
+        "fov_deg": 65.0
+      },
+      {
+        "name": "left_seats",
+        "label": "corridor",
+        "roll_deg": 180.0,
+        "pitch_deg": -45.0,
+        "fov_deg": 70.0
+      },
+      {
+        "name": "right_seats",
+        "label": "corner",
+        "roll_deg": 160.0,
+        "pitch_deg": 35.0,
+        "fov_deg": 80.0
+      }
+    ],
+    "ver": 4
+  },
+  "cam192": {
+    "views": [
+      {
+        "name": "entrance",
+        "label": "Seat",
+        "roll_deg": -125.0,
+        "pitch_deg": -40.0,
+        "fov_deg": 40.0
+      },
+      {
+        "name": "corridor",
+        "label": "Entrance",
+        "roll_deg": -70.0,
+        "pitch_deg": -45.0,
+        "fov_deg": 60.0
+      },
+      {
+        "name": "left_seats",
+        "label": "corridor",
+        "roll_deg": 180.0,
+        "pitch_deg": -35.0,
+        "fov_deg": 70.0
+      },
+      {
+        "name": "right_seats",
+        "label": "corner",
+        "roll_deg": 160.0,
+        "pitch_deg": 35.0,
+        "fov_deg": 65.0
+      }
+    ],
+    "ver": 3
+  },
+  "cam196": {
+    "views": [
+      {
+        "name": "entrance",
+        "label": "seat",
+        "roll_deg": -85.0,
+        "pitch_deg": -40.0,
+        "fov_deg": 40.0
+      },
+      {
+        "name": "corridor",
+        "label": "entrance",
+        "roll_deg": -150.0,
+        "pitch_deg": -45.0,
+        "fov_deg": 50.0
+      },
+      {
+        "name": "left_seats",
+        "label": "door",
+        "roll_deg": 120.0,
+        "pitch_deg": -35.0,
+        "fov_deg": 65.0
+      },
+      {
+        "name": "right_seats",
+        "label": "cabinet",
+        "roll_deg": 180.0,
+        "pitch_deg": 35.0,
+        "fov_deg": 60.0
+      }
+    ],
+    "ver": 1
+  },
+  "cam197": {
+    "views": [
+      {
+        "name": "entrance",
+        "label": "entrance",
+        "roll_deg": -105.0,
+        "pitch_deg": -50.0,
+        "fov_deg": 40.0
+      },
+      {
+        "name": "corridor",
+        "label": "corridor",
+        "roll_deg": -100.0,
+        "pitch_deg": -35.0,
+        "fov_deg": 60.0
+      },
+      {
+        "name": "left_seats",
+        "label": "left_seats",
+        "roll_deg": 180.0,
+        "pitch_deg": -35.0,
+        "fov_deg": 60.0
+      },
+      {
+        "name": "right_seats",
+        "label": "right_seats",
+        "roll_deg": 160.0,
+        "pitch_deg": 45.0,
+        "fov_deg": 60.0
+      }
+    ],
+    "ver": 5
+  }
+}

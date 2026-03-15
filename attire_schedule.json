@@ -1,0 +1,154 @@
+{
+  "vid-e3ce90bf": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ]
+      }
+    ]
+  },
+  "vid-ff94253a": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ]
+      }
+    ]
+  },
+  "vid-6bbca3ea": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ]
+      }
+    ]
+  },
+  "vid-9281b6db": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ]
+      }
+    ]
+  },
+  "vid-ad2fc0b3": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "vid-85ae8dfc": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "vid-4a7417b4": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "vid-3359891b": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  }
+}

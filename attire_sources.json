@@ -1,0 +1,92 @@
+{
+  "vid-e3ce90bf": {
+    "enabled": false
+  },
+  "vid-ff94253a": {
+    "enabled": true
+  },
+  "vid-6bbca3ea": {
+    "enabled": true
+  },
+  "vid-9281b6db": {
+    "enabled": true
+  },
+  "vid-4a7417b4": {
+    "enabled": true
+  },
+  "vid-85ae8dfc": {
+    "enabled": true
+  },
+  "vid-3359891b": {
+    "enabled": true
+  },
+  "vid-44ff71a6": {
+    "enabled": true
+  },
+  "vid-ad2fc0b3": {
+    "enabled": true
+  },
+  "vid-8e04d015": {
+    "enabled": true
+  },
+  "vid-c7b676b4": {
+    "enabled": true
+  },
+  "vid-99f59ff4": {
+    "enabled": true
+  },
+  "vid-fd6ab5bd": {
+    "enabled": false
+  },
+  "vid-79223a3d": {
+    "enabled": false
+  },
+  "vid-45af9cbc": {
+    "enabled": false
+  },
+  "vid-5f1c232c": {
+    "enabled": false
+  },
+  "vid-139967c8": {
+    "enabled": false
+  },
+  "cam01": {
+    "enabled": true
+  },
+  "cam02": {
+    "enabled": true
+  },
+  "cam193": {
+    "enabled": false
+  },
+  "cam192": {
+    "enabled": true
+  },
+  "cam194": {
+    "enabled": true
+  },
+  "cam195": {
+    "enabled": false
+  },
+  "cam196": {
+    "enabled": true
+  },
+  "cam197": {
+    "enabled": true
+  },
+  "cam198": {
+    "enabled": false
+  },
+  "cam201": {
+    "enabled": false
+  },
+  "vid-dfe79abe": {
+    "enabled": true
+  },
+  "vid-d6b812f1": {
+    "enabled": true
+  },
+  "vid-f32516ac": {
+    "enabled": true
+  }
+}

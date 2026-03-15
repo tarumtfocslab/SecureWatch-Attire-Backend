@@ -1,0 +1,82 @@
+{
+  "vid-e3ce90bf": {
+    "stream_fps": 10.0,
+    "detect_fps": 2.0
+  },
+  "vid-ff94253a": {
+    "stream_fps": 10.0,
+    "detect_fps": 2.0
+  },
+  "vid-6bbca3ea": {
+    "stream_fps": 10.0,
+    "detect_fps": 2.0
+  },
+  "vid-9281b6db": {
+    "stream_fps": 10.0,
+    "detect_fps": 2.0
+  },
+  "vid-ad2fc0b3": {
+    "stream_fps": 10.0,
+    "detect_fps": 3.0
+  },
+  "vid-3359891b": {
+    "stream_fps": 10.0,
+    "detect_fps": 3.0
+  },
+  "vid-85ae8dfc": {
+    "stream_fps": 10.0,
+    "detect_fps": 3.0
+  },
+  "vid-4a7417b4": {
+    "stream_fps": 10.0,
+    "detect_fps": 3.0
+  },
+  "vid-139967c8": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "vid-79223a3d": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "vid-5f1c232c": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "vid-45af9cbc": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam192": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam193": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam194": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam195": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam197": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam198": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam201": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  },
+  "cam196": {
+    "stream_fps": 12.0,
+    "detect_fps": 2.0
+  }
+}
