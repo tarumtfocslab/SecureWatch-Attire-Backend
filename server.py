@@ -639,16 +639,17 @@ def _write_attire_event_common(
     key = _live_event_key(source_id, view_name or "normal", label, track_id)
     _prune_attire_events_by_retention()
     
+    # ------------------ cooldown & persistence ------------------
     with LIVE_EVENT_STATE_LOCK:
         st = LIVE_EVENT_STATE.get(key) or {"count": 0, "last_ts": 0}
 
-        # cooldown
+        # cooldown check
         if (now_s - int(st["last_ts"])) < int(LIVE_COOLDOWN_SEC):
             st["count"] = 0
             LIVE_EVENT_STATE[key] = st
             return None
 
-        # persistence frames
+        # persistence frames check
         st["count"] = int(st["count"]) + 1
         if st["count"] < int(LIVE_PERSIST_FRAMES):
             LIVE_EVENT_STATE[key] = st
@@ -659,6 +660,7 @@ def _write_attire_event_common(
         st["last_ts"] = now_s
         LIVE_EVENT_STATE[key] = st
 
+    # ------------------ save evidence ------------------
     filename = f"{now_s}_{uuid.uuid4().hex[:8]}.jpg"
     out_path = os.path.join(VIOLATIONS_DIR, evidence_kind, source_id, filename)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -670,6 +672,7 @@ def _write_attire_event_common(
 
     evidence_url = f"/violations/{evidence_kind}/{source_id}/{filename}"
 
+    # ------------------ create event object ------------------
     new_event = {
         "id": f"{id_prefix}-{source_id}-{uuid.uuid4().hex[:8]}",
         "video_id": source_id,
@@ -688,52 +691,30 @@ def _write_attire_event_common(
         "person_id": track_id,
     }
 
+    # ------------------ save event JSON ------------------
     with ATTIRE_EVENTS_LOCK:
         ATTIRE_EVENTS.append(new_event)
         if len(ATTIRE_EVENTS) > 5000:
             ATTIRE_EVENTS[:] = ATTIRE_EVENTS[-5000:]
         _save_attire_events_file(ATTIRE_EVENTS)
-        # Publish notification (rate-limited)
-        try:
-            sid = new_event.get("video_id") or "unknown"
-            vtype = new_event.get("label") or "unknown"
-            print("[NOTIF] event created:",
-                "id=", new_event.get("id"),
-                "video_id=", new_event.get("video_id"),
-                "label=", new_event.get("label"),
-                "status=", new_event.get("status"))
 
-            ok_notif = _should_publish_notif(sid, vtype)
+    # ------------------ publish notification ------------------
+    try:
+        payload = {
+            "id": new_event["id"],
+            "source_id": new_event["video_id"],
+            "source_name": source_name,
+            "violation_type": label,
+            "timestamp": new_event["ts"],
+            "event_id": new_event["id"],
+        }
 
-            print("[NOTIF] should_publish =",
-                ok_notif,
-                "sid=", sid,
-                "type=", vtype)
+        # This is always called after cooldown/persistence
+        _publish_attire_notification(payload)
+        print("[NOTIF] Published notification:", payload)
 
-            if ok_notif:
-                with ATTIRE_NOTIF_SUBS_LOCK:
-                    sub_count = len(ATTIRE_NOTIF_SUBS)
-
-                print("[NOTIF] publishing to subscribers:", sub_count)
-
-                payload = {
-                    "id": new_event["id"],
-                    "source_id": sid,
-                    "source_name": source_name,
-                    "violation_type": vtype,
-                    "timestamp": new_event["ts"],
-                    "event_id": new_event["id"],
-                }
-
-                print("[NOTIF] payload:", payload)
-
-                _publish_attire_notification(payload)
-            else:
-                print("[NOTIF] notification suppressed",
-                    "sid=", sid,
-                    "type=", vtype)
-        except Exception:
-            pass
+    except Exception as e:
+        print("[NOTIF] Failed to publish:", e)
 
     return new_event
 
