@@ -90,7 +90,7 @@ ENABLE_HEAVY_PIPELINE = os.getenv("ENABLE_HEAVY_PIPELINE", "false").lower() == "
 # ----------------------------
 # Constants / Defaults
 # ----------------------------
-MAX_LIVE_SESSIONS = 8
+MAX_LIVE_SESSIONS = 4
 STREAM_FPS = 0.0 # 0 = AUTO/native fps
 DETECT_FPS = 2.0
 
@@ -2924,9 +2924,13 @@ def rtsp_stream(
     with LIVE_LOCK:
         sess = LIVE_SESSIONS.get(rtsp_id)
         if not sess:
-            _ensure_live_slot(rtsp_id)
-            sess = LiveVideoSession(rtsp_id, url, stream_fps=stream_fps, detect_fps=detect_fps)
-            LIVE_SESSIONS[rtsp_id] = sess
+            return {
+                "ts": int(time.time()),
+                "fps": 0,
+                "resolution": [0, 0],
+                "detections": [],
+                "detail": "No active RTSP session"
+            }
         else:
             fps_changed = (float(sess.stream_fps) != float(stream_fps)) or (float(sess.detect_fps) != float(detect_fps))
             sess.stream_fps = stream_fps
@@ -3155,14 +3159,13 @@ def offline_live_detections(video_id: str):
         sess = LIVE_SESSIONS.get(video_id)
 
         if not sess:
-            _ensure_live_slot(video_id)
-            sess = LiveVideoSession(
-                video_id,
-                video_path,
-                stream_fps=saved_stream_fps,
-                detect_fps=saved_detect_fps,
-            )
-            LIVE_SESSIONS[video_id] = sess
+            return {
+                "ts": int(time.time()),
+                "fps": 0,
+                "resolution": [0, 0],
+                "detections": [],
+                "detail": "No active offline session"
+            }
         else:
             fps_changed = (float(sess.stream_fps) != float(saved_stream_fps)) or (float(sess.detect_fps) != float(saved_detect_fps))
 
