@@ -541,16 +541,41 @@ def _write_attire_event_common(
         try:
             sid = new_event.get("video_id") or "unknown"
             vtype = new_event.get("label") or "unknown"
-            if _should_publish_notif(sid, vtype):
-                _publish_attire_notification({
-                    "id": new_event.get("id"),
+            print("[NOTIF] event created:",
+                "id=", new_event.get("id"),
+                "video_id=", new_event.get("video_id"),
+                "label=", new_event.get("label"),
+                "status=", new_event.get("status"))
+
+            ok_notif = _should_publish_notif(sid, vtype)
+
+            print("[NOTIF] should_publish =",
+                ok_notif,
+                "sid=", sid,
+                "type=", vtype)
+
+            if ok_notif:
+                with ATTIRE_NOTIF_SUBS_LOCK:
+                    sub_count = len(ATTIRE_NOTIF_SUBS)
+
+                print("[NOTIF] publishing to subscribers:", sub_count)
+
+                payload = {
+                    "id": new_event["id"],
                     "source_id": sid,
-                    "source_name": new_event.get("video_name") or sid,
+                    "source_name": source_name,
                     "violation_type": vtype,
-                    "timestamp": datetime.fromtimestamp(int(new_event.get("ts", 0) or 0)).isoformat(),
-                    "image_url": new_event.get("evidence_url"),
-                    "status": new_event.get("status", "Pending"),
-                })
+                    "timestamp": new_event["ts"],
+                    "event_id": new_event["id"],
+                }
+
+                print("[NOTIF] payload:", payload)
+
+                _publish_attire_notification(payload)
+            else:
+                print("[NOTIF] notification suppressed",
+                    "sid=", sid,
+                    "type=", vtype)
         except Exception:
             pass
 
