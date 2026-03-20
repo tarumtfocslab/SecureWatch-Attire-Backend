@@ -2704,7 +2704,7 @@ class LiveVideoSession:
 # API: Events
 # ----------------------------
 @app.get("/api/attire/events")
-def get_attire_events(video_id: str = "", limit: int = 200):
+def get_attire_events(video_id: str = "", limit: int = 1000):
     _prune_attire_events_by_retention()
 
     with ATTIRE_EVENTS_LOCK:
