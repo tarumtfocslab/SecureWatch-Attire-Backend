@@ -90,7 +90,7 @@ ENABLE_HEAVY_PIPELINE = os.getenv("ENABLE_HEAVY_PIPELINE", "false").lower() == "
 # ----------------------------
 # Constants / Defaults
 # ----------------------------
-MAX_LIVE_SESSIONS = 4
+MAX_LIVE_SESSIONS = 8
 STREAM_FPS = 0.0 # 0 = AUTO/native fps
 DETECT_FPS = 2.0
 
