@@ -500,7 +500,8 @@ RETENTION_PATH = str(HERE / "attire_retention.json")
 RETENTION_LOCK = threading.Lock()
 
 DEFAULT_RETENTION_CFG = {
-    "retention_days": 7,   # allowed 1..7
+    "enabled": True,
+    "retention_days": 7,
 }
 
 ATTIRE_RETENTION_CFG = DEFAULT_RETENTION_CFG.copy()
@@ -533,6 +534,10 @@ def _get_retention_days() -> int:
         days = int(ATTIRE_RETENTION_CFG.get("retention_days", 7) or 7)
     return max(1, min(7, days))
 
+def _is_retention_enabled() -> bool:
+    with RETENTION_LOCK:
+        return bool(ATTIRE_RETENTION_CFG.get("enabled", True))
+
 def _safe_remove_file(path: str) -> None:
     try:
         if path and os.path.isfile(path):
@@ -554,6 +559,9 @@ def _prune_attire_events_by_retention() -> int:
     Remove expired attire events and their evidence files based on retention_days.
     Returns number of deleted events.
     """
+    if not _is_retention_enabled():
+        return 0
+
     cutoff_ts = int(time.time()) - (_get_retention_days() * 24 * 3600)
     removed = []
 
@@ -3752,15 +3760,18 @@ def set_attire_violation_types(body: dict = Body(...)):
 def get_attire_data_retention():
     _prune_attire_events_by_retention()
     return {
-        "retention_days": _get_retention_days()
+        "enabled": _is_retention_enabled(),
+        "retention_days": _get_retention_days(),
     }
 
 @app.post("/api/attire/data-retention")
 def set_attire_data_retention(body: dict = Body(...)):
+    enabled = bool(body.get("enabled", True))
     days = int(body.get("retention_days", 7) or 7)
     days = max(1, min(7, days))
 
     with RETENTION_LOCK:
+        ATTIRE_RETENTION_CFG["enabled"] = enabled
         ATTIRE_RETENTION_CFG["retention_days"] = days
         _save_retention_file(ATTIRE_RETENTION_CFG)
 
@@ -3768,6 +3779,7 @@ def set_attire_data_retention(body: dict = Body(...)):
 
     return {
         "ok": True,
+        "enabled": enabled,
         "retention_days": days,
         "pruned_events": pruned,
     }

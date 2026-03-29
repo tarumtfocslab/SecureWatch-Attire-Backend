@@ -33,50 +33,50 @@
   },
   "vid-139967c8": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "vid-79223a3d": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "vid-5f1c232c": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "vid-45af9cbc": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam192": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam193": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam194": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam195": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam197": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam198": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam201": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   },
   "cam196": {
     "stream_fps": 12.0,
-    "detect_fps": 2.0
+    "detect_fps": 3.0
   }
 }

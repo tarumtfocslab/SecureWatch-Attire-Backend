@@ -150,5 +150,221 @@
         ]
       }
     ]
+  },
+  "cam192": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "cam201": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "cam196": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "cam194": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "vid-79223a3d": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "vid-5f1c232c": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "cam195": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "vid-139967c8": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "cam193": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "cam197": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "vid-45af9cbc": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
+  },
+  "cam198": {
+    "enabled": true,
+    "schedules": [
+      {
+        "id": "1",
+        "startTime": "08:00",
+        "endTime": "18:00",
+        "enabled": true,
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri"
+        ]
+      }
+    ]
   }
 }
