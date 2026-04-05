@@ -707,11 +707,16 @@ LIVE_EVENT_STATE = {}  # key -> {"count": int, "last_ts": int}
 # Duplicate event suppression (lightweight image similarity)
 # ----------------------------
 DUPLICATE_TIME_WINDOW_SEC = 180
-DUPLICATE_SIMILARITY_THRESHOLD = 0.70
-DUPLICATE_INDEX_MAX_PER_BUCKET = 8
+DUPLICATE_SIMILARITY_THRESHOLD = 0.62
+DUPLICATE_INDEX_MAX_PER_BUCKET = 12
 DUPLICATE_INDEX_TTL_SEC = 180
 DUPLICATE_CLEANUP_INTERVAL_SEC = 45
 DUPLICATE_CLEANUP_LOOKBACK_SEC = 120
+
+DUPLICATE_STRONG_HASH_THRESHOLD = 0.66
+DUPLICATE_WEAK_HASH_THRESHOLD = 0.58
+DUPLICATE_HIST_THRESHOLD = 0.72
+DUPLICATE_TRACK_SUPPRESS_SEC = 20
 
 ATTIRE_DUPLICATE_INDEX_LOCK = threading.Lock()
 ATTIRE_DUPLICATE_INDEX = {}  # bucket_key -> list[entry]
@@ -774,6 +779,47 @@ def _build_crop_evidence_whole_person(img_bgr, bbox, label):
         return None
     return crop
 
+def _build_dedupe_focus_crop(img_bgr, bbox, label):
+    """
+    Smaller, more stable crop for dedupe only.
+    Keep saved evidence as whole-person crop, but hash this focused crop instead.
+    """
+    base = _build_crop_evidence_whole_person(img_bgr, bbox, label)
+    if base is None or getattr(base, "size", 0) == 0:
+        return None
+
+    h, w = base.shape[:2]
+    lab = (label or "").lower()
+
+    if lab == "slippers":
+        y1 = int(h * 0.65)
+        y2 = h
+        x1 = int(w * 0.15)
+        x2 = int(w * 0.85)
+
+    elif lab == "shorts":
+        y1 = int(h * 0.35)
+        y2 = int(h * 0.82)
+        x1 = int(w * 0.18)
+        x2 = int(w * 0.82)
+
+    elif lab == "sleeveless":
+        y1 = int(h * 0.08)
+        y2 = int(h * 0.50)
+        x1 = int(w * 0.18)
+        x2 = int(w * 0.82)
+
+    else:
+        y1 = int(h * 0.15)
+        y2 = int(h * 0.85)
+        x1 = int(w * 0.15)
+        x2 = int(w * 0.85)
+
+    crop = base[y1:y2, x1:x2]
+    if crop is None or crop.size == 0:
+        return base
+    return crop
+
 def _compute_difference_hash_uint64(img_bgr, size: int = 16) -> int:
     if img_bgr is None or getattr(img_bgr, "size", 0) == 0:
         return 0
@@ -787,6 +833,33 @@ def _compute_difference_hash_uint64(img_bgr, size: int = 16) -> int:
         value = (value << 1) | int(bool(bit))
     return int(value)
 
+def _compute_tiny_hsv_hist(img_bgr):
+    if img_bgr is None or getattr(img_bgr, "size", 0) == 0:
+        return None
+
+    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    hist = cv2.calcHist(
+        [hsv],
+        [0, 1, 2],
+        None,
+        [8, 4, 4],
+        [0, 180, 0, 256, 0, 256],
+    )
+    hist = cv2.normalize(hist, hist).flatten()
+    return hist
+
+def _hist_similarity(a, b) -> float:
+    if a is None or b is None:
+        return 0.0
+    try:
+        return float(cv2.compareHist(
+            a.astype(np.float32),
+            b.astype(np.float32),
+            cv2.HISTCMP_CORREL
+        ))
+    except Exception:
+        return 0.0
+    
 def _hash_similarity_ratio(a: int, b: int, size: int = 16) -> float:
     bits = size * size
     x = int(a) ^ int(b)
@@ -802,6 +875,45 @@ def _event_bbox_area(ev: dict) -> float:
         return 0.0
     x1, y1, x2, y2 = [float(v) for v in bbox]
     return max(0.0, x2 - x1) * max(0.0, y2 - y1)
+
+def _bbox_center_and_area(bbox_xyxy):
+    if not isinstance(bbox_xyxy, (list, tuple)) or len(bbox_xyxy) != 4:
+        return None, None, 0.0
+    x1, y1, x2, y2 = [float(v) for v in bbox_xyxy]
+    cx = (x1 + x2) * 0.5
+    cy = (y1 + y2) * 0.5
+    area = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    return cx, cy, area
+
+def _bbox_center_distance(b1, b2) -> float:
+    c1x, c1y, _ = _bbox_center_and_area(b1)
+    c2x, c2y, _ = _bbox_center_and_area(b2)
+    if c1x is None or c2x is None:
+        return 1e9
+    dx = c1x - c2x
+    dy = c1y - c2y
+    return math.sqrt(dx * dx + dy * dy)
+
+def _bbox_center_distance_normalized(b1, b2) -> float:
+    dist = _bbox_center_distance(b1, b2)
+    _, _, a1 = _bbox_center_and_area(b1)
+    _, _, a2 = _bbox_center_and_area(b2)
+
+    if a1 <= 0.0 or a2 <= 0.0:
+        return 1e9
+
+    ref = math.sqrt(min(a1, a2))
+    if ref <= 1e-6:
+        return 1e9
+
+    return float(dist) / float(ref)
+
+def _bbox_area_ratio(b1, b2) -> float:
+    _, _, a1 = _bbox_center_and_area(b1)
+    _, _, a2 = _bbox_center_and_area(b2)
+    if a1 <= 0.0 or a2 <= 0.0:
+        return 0.0
+    return min(a1, a2) / max(a1, a2)
 
 def _merge_duplicate_event_fields(existing: dict, *, new_conf, new_ts: int, similarity: float, bbox_xyxy, evidence_url: str = "") -> dict:
     out = dict(existing)
@@ -844,30 +956,95 @@ def _prune_duplicate_index(now_ts: float = None) -> None:
         for key in dead:
             ATTIRE_DUPLICATE_INDEX.pop(key, None)
 
-def _find_duplicate_recent_event(source_id: str, view_name: str, label: str, track_id, crop_hash: int, now_s: int):
-    bucket = _duplicate_bucket_key(source_id, view_name, label, track_id)
+def _find_duplicate_recent_event(
+    source_id: str,
+    view_name: str,
+    label: str,
+    track_id,
+    crop_hash: int,
+    now_s: int,
+    bbox_xyxy=None,
+    color_hist=None,
+):
     _prune_duplicate_index(now_s)
-    with ATTIRE_DUPLICATE_INDEX_LOCK:
-        entries = list(ATTIRE_DUPLICATE_INDEX.get(bucket) or [])
+
+    buckets = []
+    buckets.append(_duplicate_bucket_key(source_id, view_name, label, track_id))
+    if track_id is not None:
+        buckets.append(_duplicate_bucket_key(source_id, view_name, label, None))
 
     best = None
-    best_sim = 0.0
-    for entry in reversed(entries):
+    best_score = -1.0
+
+    with ATTIRE_DUPLICATE_INDEX_LOCK:
+        all_entries = []
+        for bucket in buckets:
+            for e in (ATTIRE_DUPLICATE_INDEX.get(bucket) or []):
+                all_entries.append((bucket, dict(e)))
+
+    for bucket, entry in reversed(all_entries):
         age = now_s - int(entry.get("ts", 0) or 0)
         if age > int(DUPLICATE_TIME_WINDOW_SEC):
             continue
+
         sim = _hash_similarity_ratio(crop_hash, int(entry.get("hash", 0) or 0))
-        if sim >= float(DUPLICATE_SIMILARITY_THRESHOLD) and sim > best_sim:
-            best = entry
-            best_sim = sim
 
-    if best is None:
-        return None
-    return {"event_id": best.get("event_id"), "similarity": float(best_sim), "bucket": bucket}
+        old_bbox = entry.get("bbox_xyxy")
+        dist_norm = _bbox_center_distance_normalized(bbox_xyxy, old_bbox) if bbox_xyxy is not None and old_bbox is not None else 1e9
+        area_ratio = _bbox_area_ratio(bbox_xyxy, old_bbox) if bbox_xyxy is not None and old_bbox is not None else 0.0
 
-def _remember_duplicate_index(source_id: str, view_name: str, label: str, track_id, crop_hash: int, now_s: int, event_id: str):
+        old_hist = entry.get("color_hist")
+        old_hist = np.array(old_hist, dtype=np.float32) if old_hist is not None else None
+        hist_sim = _hist_similarity(color_hist, old_hist) if color_hist is not None else 0.0
+
+        combined = (0.65 * sim) + (0.35 * max(0.0, hist_sim))
+
+        # strong duplicate
+        if combined >= DUPLICATE_STRONG_HASH_THRESHOLD and dist_norm <= 0.35 and area_ratio >= 0.55:
+            score = combined + area_ratio
+            if score > best_score:
+                best = {
+                    "event_id": entry.get("event_id"),
+                    "similarity": float(combined),
+                    "bucket": bucket,
+                    "match_mode": "strong",
+                }
+                best_score = score
+            continue
+
+        # weak duplicate, but very near in space/time
+        if age <= 8 and combined >= DUPLICATE_WEAK_HASH_THRESHOLD and dist_norm <= 0.22 and area_ratio >= 0.65:
+            score = combined + area_ratio + 0.1
+            if score > best_score:
+                best = {
+                    "event_id": entry.get("event_id"),
+                    "similarity": float(combined),
+                    "bucket": bucket,
+                    "match_mode": "weak_spatial",
+                }
+                best_score = score
+
+    return best
+
+def _remember_duplicate_index(
+    source_id: str,
+    view_name: str,
+    label: str,
+    track_id,
+    crop_hash: int,
+    now_s: int,
+    event_id: str,
+    bbox_xyxy=None,
+    color_hist=None,
+):
     bucket = _duplicate_bucket_key(source_id, view_name, label, track_id)
-    entry = {"event_id": event_id, "hash": int(crop_hash), "ts": int(now_s)}
+    entry = {
+        "event_id": event_id,
+        "hash": int(crop_hash),
+        "ts": int(now_s),
+        "bbox_xyxy": [float(v) for v in bbox_xyxy] if isinstance(bbox_xyxy, (list, tuple)) and len(bbox_xyxy) == 4 else None,
+        "color_hist": color_hist.tolist() if color_hist is not None else None,
+    }
     with ATTIRE_DUPLICATE_INDEX_LOCK:
         arr = list(ATTIRE_DUPLICATE_INDEX.get(bucket) or [])
         arr.append(entry)
@@ -901,6 +1078,7 @@ def _dedupe_recent_attire_events_periodic() -> int:
             if img is None or img.size == 0:
                 continue
             crop_hash = _compute_difference_hash_uint64(img)
+            color_hist = _compute_tiny_hsv_hist(img)
 
             bucket = _duplicate_bucket_key(
                 str(ev.get("video_id") or ""),
@@ -916,9 +1094,25 @@ def _dedupe_recent_attire_events_periodic() -> int:
                 if abs(ts - int(keeper.get("ts", 0) or 0)) > int(DUPLICATE_TIME_WINDOW_SEC):
                     continue
                 sim = _hash_similarity_ratio(crop_hash, int(keeper.get("hash", 0) or 0))
-                if sim >= float(DUPLICATE_SIMILARITY_THRESHOLD):
+
+                keeper_bbox = keeper.get("bbox_xyxy")
+                curr_bbox = ev.get("bbox_xyxy")
+                dist_norm = _bbox_center_distance_normalized(curr_bbox, keeper_bbox)
+                area_ratio = _bbox_area_ratio(curr_bbox, keeper_bbox)
+
+                old_hist = keeper.get("color_hist")
+                old_hist = np.array(old_hist, dtype=np.float32) if old_hist is not None else None
+                hist_sim = _hist_similarity(color_hist, old_hist)
+
+                combined = (0.65 * sim) + (0.35 * max(0.0, hist_sim))
+
+                if (
+                    (combined >= DUPLICATE_STRONG_HASH_THRESHOLD and dist_norm <= 0.35 and area_ratio >= 0.55)
+                    or
+                    (combined >= DUPLICATE_WEAK_HASH_THRESHOLD and dist_norm <= 0.22 and area_ratio >= 0.65)
+                ):
                     matched_keeper = keeper
-                    matched_sim = sim
+                    matched_sim = combined
                     break
 
             if matched_keeper is None:
@@ -926,6 +1120,8 @@ def _dedupe_recent_attire_events_periodic() -> int:
                     "id": str(ev.get("id")),
                     "hash": crop_hash,
                     "ts": ts,
+                    "bbox_xyxy": ev.get("bbox_xyxy"),
+                    "color_hist": color_hist.tolist() if color_hist is not None else None,
                 })
                 continue
 
@@ -996,6 +1192,13 @@ def _write_attire_event_common(
     key = _live_event_key(source_id, view_name or "normal", label, track_id)
     _prune_attire_events_by_retention()
     
+    if track_id is not None:
+        suppress_key = f"{source_id}|{view_name or 'normal'}|{label}|trk:{track_id}"
+        with LIVE_EVENT_STATE_LOCK:
+            st0 = LIVE_EVENT_STATE.get(suppress_key) or {"count": 0, "last_ts": 0}
+            if (now_s - int(st0.get("last_ts", 0))) < int(DUPLICATE_TRACK_SUPPRESS_SEC):
+                return None
+        
     with LIVE_EVENT_STATE_LOCK:
         st = LIVE_EVENT_STATE.get(key) or {"count": 0, "last_ts": 0}
 
@@ -1045,16 +1248,24 @@ def _write_attire_event_common(
         crop_img = frame_bgr
         cv2.imwrite(out_path, frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
 
-    crop_hash = _compute_difference_hash_uint64(crop_img)
+    # NEW: use focused crop for dedupe, not the whole evidence crop
+    dedupe_img = _build_dedupe_focus_crop(frame_bgr, bbox_xyxy, label)
+    if dedupe_img is None or getattr(dedupe_img, "size", 0) == 0:
+        dedupe_img = crop_img
+
+    crop_hash = _compute_difference_hash_uint64(dedupe_img)
+    color_hist = _compute_tiny_hsv_hist(dedupe_img)
+
     duplicate_hit = _find_duplicate_recent_event(
         source_id,
         view_name or "normal",
         label,
         track_id,
         crop_hash,
-        now_s
+        now_s,
+        bbox_xyxy=bbox_xyxy,
+        color_hist=color_hist,
     )
-
     evidence_url = f"/violations/{evidence_kind}/{source_id}/{shard_folder}/{filename}"
 
     if duplicate_hit is not None:
@@ -1066,6 +1277,10 @@ def _write_attire_event_common(
             )
             if idx is not None:
                 ev = dict(items[idx])
+
+                old_evidence_url = str(ev.get("evidence_url") or "")
+                old_evidence_path = _event_evidence_abs_path(ev)
+
                 merged = _merge_duplicate_event_fields(
                     ev,
                     new_conf=conf,
@@ -1076,6 +1291,7 @@ def _write_attire_event_common(
                 )
                 items[idx] = merged
                 _rewrite_all_attire_events(items)
+
                 _remember_duplicate_index(
                     source_id,
                     view_name or "normal",
@@ -1083,10 +1299,25 @@ def _write_attire_event_common(
                     track_id,
                     crop_hash,
                     now_s,
-                    str(merged.get("id"))
+                    str(merged.get("id")),
+                    bbox_xyxy=bbox_xyxy,
+                    color_hist=color_hist,
                 )
-                _safe_remove_file(out_path)
-                return None
+
+                merged_evidence_url = str(merged.get("evidence_url") or "")
+                merged_evidence_path = _event_evidence_abs_path(merged)
+
+        # IMPORTANT:
+        # keep the file that the merged record is actually pointing to
+        if merged_evidence_url == evidence_url or merged_evidence_path == out_path:
+            # merged event adopted the NEW evidence file -> keep new file
+            if old_evidence_path and old_evidence_path != out_path and old_evidence_path != merged_evidence_path:
+                _safe_remove_file(old_evidence_path)
+        else:
+            # merged event kept the OLD evidence file -> delete the new temp duplicate file
+            _safe_remove_file(out_path)
+
+        return None
 
     new_event = {
         "id": f"{id_prefix}-{source_id}-{uuid.uuid4().hex[:8]}",
@@ -1119,7 +1350,9 @@ def _write_attire_event_common(
             track_id,
             crop_hash,
             now_s,
-            str(new_event.get("id"))
+            str(new_event.get("id")),
+            bbox_xyxy=bbox_xyxy,
+            color_hist=color_hist,
         )
         # Publish notification (rate-limited)
         try:
