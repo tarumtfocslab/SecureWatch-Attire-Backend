@@ -577,6 +577,8 @@ def _rewrite_all_attire_events(events: list) -> None:
 RETENTION_PATH = str(HERE / "attire_retention.json")
 RETENTION_LOCK = threading.Lock()
 
+MAX_RETENTION_DAYS = 150
+
 DEFAULT_RETENTION_CFG = {
     "enabled": True,
     "retention_days": 7,
@@ -610,7 +612,7 @@ with RETENTION_LOCK:
 def _get_retention_days() -> int:
     with RETENTION_LOCK:
         days = int(ATTIRE_RETENTION_CFG.get("retention_days", 7) or 7)
-    return max(1, min(7, days))
+    return max(1, min(MAX_RETENTION_DAYS, days))
 
 def _is_retention_enabled() -> bool:
     with RETENTION_LOCK:
@@ -4416,7 +4418,7 @@ def get_attire_data_retention():
 def set_attire_data_retention(body: dict = Body(...)):
     enabled = bool(body.get("enabled", True))
     days = int(body.get("retention_days", 7) or 7)
-    days = max(1, min(7, days))
+    days = max(1, min(MAX_RETENTION_DAYS, days))
 
     with RETENTION_LOCK:
         ATTIRE_RETENTION_CFG["enabled"] = enabled
