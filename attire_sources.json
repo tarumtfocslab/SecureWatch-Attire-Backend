@@ -39,7 +39,7 @@
     "enabled": false
   },
   "vid-79223a3d": {
-    "enabled": true
+    "enabled": false
   },
   "vid-45af9cbc": {
     "enabled": false
@@ -48,7 +48,7 @@
     "enabled": false
   },
   "vid-139967c8": {
-    "enabled": true
+    "enabled": false
   },
   "cam01": {
     "enabled": true
@@ -72,13 +72,13 @@
     "enabled": false
   },
   "cam197": {
-    "enabled": false
+    "enabled": true
   },
   "cam198": {
     "enabled": false
   },
   "cam201": {
-    "enabled": false
+    "enabled": true
   },
   "vid-dfe79abe": {
     "enabled": true

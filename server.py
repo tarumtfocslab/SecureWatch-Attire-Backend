@@ -3512,11 +3512,10 @@ def clear_attire_events(video_id: str = ""):
 
 @app.patch("/api/attire/events/{event_id}")
 def patch_attire_event(event_id: str, body: dict = Body(...)):
-    """Update a single event (status/location/notes). Persists to attire_events.json."""
+    """Update a single event and persist resolved timestamp correctly."""
     allowed = {"status", "location", "notes", "label", "severity", "source"}
     updates = {k: body.get(k) for k in allowed if k in body}
 
-    # normalize status if present
     if "status" in updates:
         s = str(updates["status"] or "").strip().title()
         if s not in {"Pending", "Resolved"}:
@@ -3530,7 +3529,21 @@ def patch_attire_event(event_id: str, body: dict = Body(...)):
             raise HTTPException(status_code=404, detail="event not found")
 
         ev = dict(items[idx])
+        old_status = str(ev.get("status") or "Pending").title()
+
         ev.update({k: v for k, v in updates.items()})
+
+        # maintain resolved timestamp
+        if "status" in updates:
+            new_status = str(ev.get("status") or "Pending").title()
+
+            if new_status == "Resolved":
+                # set only when first resolved, or always overwrite if you prefer
+                if not ev.get("resolved_ts"):
+                    ev["resolved_ts"] = int(time.time())
+            elif new_status == "Pending":
+                ev["resolved_ts"] = None
+
         items[idx] = ev
         _rewrite_all_attire_events(items)
 
