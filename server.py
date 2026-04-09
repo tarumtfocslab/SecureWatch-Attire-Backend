@@ -105,7 +105,11 @@ STREAM_FPS = 0.0 # 0 = AUTO/native fps
 DETECT_FPS = 2.0
 
 LIVE_VIOLATION_CLASSES = {"sleeveless", "shorts", "slippers"}
-LIVE_VIOLATION_CONF = 0.35
+VIOLATION_CONF_THRESHOLDS = {
+    "sleeveless": 0.25,
+    "shorts": 0.40,
+    "slippers": 0.35,
+}
 LIVE_PERSIST_FRAMES = 3
 LIVE_COOLDOWN_SEC = 10.0
 
@@ -797,7 +801,7 @@ LIVE_EVENT_STATE = {}  # key -> {"count": int, "last_ts": int}
 # Duplicate event suppression (lightweight image similarity)
 # ----------------------------
 DUPLICATE_TIME_WINDOW_SEC = 180
-DUPLICATE_SIMILARITY_THRESHOLD = 0.62
+DUPLICATE_SIMILARITY_THRESHOLD = 0.50
 DUPLICATE_INDEX_MAX_PER_BUCKET = 12
 DUPLICATE_INDEX_TTL_SEC = 180
 DUPLICATE_CLEANUP_INTERVAL_SEC = 45
@@ -2407,11 +2411,16 @@ def _label_to_violation(label: str):
         return "slippers"
     return None
 
+def _get_violation_conf_threshold(vio: str) -> float:
+    return float(VIOLATION_CONF_THRESHOLDS.get(vio, 0.35))
+
 def _extract_violation_boxes(raw):
     out = []
     for bbox, label, cf in _iter_boxes_from_raw(raw) or []:
         vio = _label_to_violation(label)
-        if (vio in LIVE_VIOLATION_CLASSES) and (float(cf) >= LIVE_VIOLATION_CONF):
+        threshold = _get_violation_conf_threshold(vio)
+
+        if (vio in LIVE_VIOLATION_CLASSES) and (float(cf) >= threshold):
             out.append({
                 "label": vio,
                 "raw_label": label,
@@ -2419,7 +2428,6 @@ def _extract_violation_boxes(raw):
                 "bbox": [float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])],
             })
     return out
-
 # --- Session helpers ---
 def _touch_session(sess):
     sess.last_access = time.time()
@@ -3356,8 +3364,11 @@ class LiveVideoSession:
                                         vio = _label_to_violation(label)
                                         if (vio in LIVE_VIOLATION_CLASSES) and (not enabled_vios.get(vio, True)):
                                             continue
+
+                                        threshold = _get_violation_conf_threshold(vio)
+
                                         # event candidates (violations only)
-                                        if (vio in LIVE_VIOLATION_CLASSES) and (float(cf) >= LIVE_VIOLATION_CONF):
+                                        if (vio in LIVE_VIOLATION_CLASSES) and (float(cf) >= threshold):
                                             k = (view_name or "normal", vio)
                                             prev = best_vio.get(k)
                                             if (prev is None) or (float(cf) > float(prev["conf"])):
