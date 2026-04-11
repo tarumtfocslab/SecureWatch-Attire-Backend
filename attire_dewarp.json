@@ -160,10 +160,10 @@
     "views": [
       {
         "name": "entrance",
-        "label": "tutor",
-        "roll_deg": -75.0,
-        "pitch_deg": -60.0,
-        "fov_deg": 20.0
+        "label": "entrance",
+        "roll_deg": -95.0,
+        "pitch_deg": -50.0,
+        "fov_deg": 35.0
       },
       {
         "name": "corridor",
@@ -187,6 +187,6 @@
         "fov_deg": 60.0
       }
     ],
-    "ver": 8
+    "ver": 10
   }
 }

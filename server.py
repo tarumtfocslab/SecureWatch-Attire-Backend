@@ -32,16 +32,14 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "https://qy248.github.io",
     "https://jinxuan-wong.github.io",
-    "https://c9e92d69.securewatch.pages.dev",
 ]
 
 app = FastAPI()
 try:
     p = psutil.Process(os.getpid())
     p.nice(psutil.HIGH_PRIORITY_CLASS)
-    print("[ATTIRE] process priority set to HIGH")
-except Exception as e:
-    print("[ATTIRE] failed to set process priority:", e)
+except Exception:
+    pass
 
 HERE = Path(__file__).resolve().parent
 UPLOAD_DIR = str(HERE / "uploads")
@@ -95,8 +93,6 @@ async def preflight_handler(rest_of_path: str, request: Request):
 def render_health():
     return {"status": "ok"}
 
-ENABLE_HEAVY_PIPELINE = os.getenv("ENABLE_HEAVY_PIPELINE", "false").lower() == "true"
-
 # ----------------------------
 # Constants / Defaults
 # ----------------------------
@@ -135,10 +131,7 @@ TRACKS_BY_VIEW = {}  # (source_id, view_name) -> {track_id: {"bbox":[x1,y1,x2,y2
 RTSP_PATH = str(HERE / "attire_rtsp.json")
 RTSP_LOCK = threading.Lock()
 # rtsp_id -> {"name": str, "url": str}
-RTSP_BY_ID = {
-  "rtsp-1": {"name": "Gate A - Main", "url": "rtsp://..."},
-  "rtsp-2": {"name": "Corridor B", "url": "rtsp://..."}
-}
+RTSP_BY_ID = {}
 
 def _load_rtsp_file() -> dict:
     try:
@@ -1009,34 +1002,6 @@ def _bbox_area_ratio(b1, b2) -> float:
         return 0.0
     return min(a1, a2) / max(a1, a2)
 
-def _merge_duplicate_event_fields(existing: dict, *, new_conf, new_ts: int, similarity: float, bbox_xyxy, evidence_url: str = "") -> dict:
-    out = dict(existing)
-    out["last_seen_ts"] = int(new_ts)
-    out["duplicate_hits"] = int(out.get("duplicate_hits", 0) or 0) + 1
-    out["max_similarity"] = max(float(out.get("max_similarity", 0.0) or 0.0), float(similarity or 0.0))
-    out["last_conf"] = float(new_conf) if new_conf is not None else out.get("last_conf")
-
-    old_conf = out.get("conf")
-    old_conf = float(old_conf) if old_conf is not None else -1.0
-    new_conf_f = float(new_conf) if new_conf is not None else -1.0
-
-    old_area = _event_bbox_area(out)
-    new_area = 0.0
-    if isinstance(bbox_xyxy, (list, tuple)) and len(bbox_xyxy) == 4:
-        x1, y1, x2, y2 = [float(v) for v in bbox_xyxy]
-        new_area = max(0.0, x2 - x1) * max(0.0, y2 - y1)
-
-    should_upgrade = (new_conf_f > old_conf + 1e-6) or ((abs(new_conf_f - old_conf) <= 1e-6) and (new_area > old_area))
-
-    if should_upgrade:
-        out["conf"] = float(new_conf) if new_conf is not None else out.get("conf")
-        if evidence_url:
-            out["evidence_url"] = evidence_url
-        if isinstance(bbox_xyxy, (list, tuple)) and len(bbox_xyxy) == 4:
-            out["bbox_xyxy"] = [float(v) for v in bbox_xyxy]
-
-    return out
-
 def _prune_duplicate_index(now_ts: float = None) -> None:
     now_ts = time.time() if now_ts is None else float(now_ts)
     with ATTIRE_DUPLICATE_INDEX_LOCK:
@@ -1286,9 +1251,7 @@ def _duplicate_cleanup_worker():
         time.sleep(max(10.0, float(DUPLICATE_CLEANUP_INTERVAL_SEC)))
         try:
             _prune_duplicate_index()
-            removed = _dedupe_recent_attire_events_periodic()
-            if removed:
-                print(f"[DEDUP] removed {removed} duplicate attire event(s)")
+            _dedupe_recent_attire_events_periodic()
         except Exception as e:
             print(f"[DEDUP] periodic cleanup failed: {e}")
 
@@ -1477,25 +1440,9 @@ def _write_attire_event_common(
         try:
             sid = new_event.get("video_id") or "unknown"
             vtype = new_event.get("label") or "unknown"
-            print("[NOTIF] event created:",
-                "id=", new_event.get("id"),
-                "video_id=", new_event.get("video_id"),
-                "label=", new_event.get("label"),
-                "status=", new_event.get("status"))
-
             ok_notif = _should_publish_notif(sid, vtype)
 
-            print("[NOTIF] should_publish =",
-                ok_notif,
-                "sid=", sid,
-                "type=", vtype)
-
             if ok_notif:
-                with ATTIRE_NOTIF_SUBS_LOCK:
-                    sub_count = len(ATTIRE_NOTIF_SUBS)
-
-                print("[NOTIF] publishing to subscribers:", sub_count)
-
                 payload = {
                     "id": new_event["id"],
                     "source_id": sid,
@@ -1506,13 +1453,7 @@ def _write_attire_event_common(
                     "imageUrl": new_event.get("evidence_url") or "",
                 }
 
-                print("[NOTIF] payload:", payload)
-
                 _publish_attire_notification(payload)
-            else:
-                print("[NOTIF] notification suppressed",
-                    "sid=", sid,
-                    "type=", vtype)
         except Exception:
             pass
 
@@ -1678,8 +1619,6 @@ def _decorate_attire_event(e: dict) -> dict:
 
     # NEW: map to display label (from dewarp config)
     view_label = _get_view_display_label(str(vid), view_raw)
-
-    # optional: keep both fields (useful for debugging)
     out["view_name"] = view_raw
     out["view"] = view_label
 
@@ -1710,7 +1649,7 @@ SESSIONS_PATH = str(HERE / "sessions.json")
 SESSIONS_LOCK = threading.Lock()
 SESSIONS = {}  # token -> {"user_id": "...", "exp": unix_ts}
 
-SESSION_TTL_SEC = 60 * 60 * 12  # 12 hours (adjust)
+SESSION_TTL_SEC = 60 * 60 * 12  # 12 hours 
 PASSWORD_ITERS = 120_000
 
 def _load_json_file(path: str, default):
@@ -1946,8 +1885,8 @@ NOTIF_LOCK = threading.Lock()
 DEFAULT_NOTIF_CFG = {
     "enabled": True,
     "cooldown_sec": 30,   # prevent spam
-    "toast_sec": 6,       # frontend can use this
-    "play_sound": False,  # frontend can use this
+    "toast_sec": 6,       #
+    "play_sound": False, 
 }
 
 ATTIRE_NOTIF_CFG = DEFAULT_NOTIF_CFG.copy()
@@ -1987,13 +1926,7 @@ def _should_publish_notif(source_id: str, violation_type: str) -> bool:
     with NOTIF_LOCK:
         cfg = dict(ATTIRE_NOTIF_CFG)
 
-    print("[NOTIF] _should_publish_notif called",
-          "source_id=", source_id,
-          "violation_type=", violation_type,
-          "cfg=", cfg)
-
     if not cfg.get("enabled", True):
-        print("[NOTIF] blocked: notifications disabled")
         return False
 
     cd = float(cfg.get("cooldown_sec", 30) or 0)
@@ -2004,20 +1937,11 @@ def _should_publish_notif(source_id: str, violation_type: str) -> bool:
         last = ATTIRE_NOTIF_LAST_TS.get(key, 0.0)
         diff = now - last
 
-        print("[NOTIF] cooldown check",
-              "key=", key,
-              "last=", last,
-              "now=", now,
-              "diff=", diff,
-              "cooldown=", cd)
-
         if cd > 0 and diff < cd:
-            print("[NOTIF] blocked by cooldown")
             return False
 
         ATTIRE_NOTIF_LAST_TS[key] = now
 
-    print("[NOTIF] allowed")
     return True
 
 def _publish_attire_notification(payload: dict) -> None:
@@ -2103,9 +2027,6 @@ _cleanup_missing_evidence_events()
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
-def _clamp_int(v, lo, hi):
-    return int(max(lo, min(hi, v)))
-
 def _box_iou(a, b):
     ax1, ay1, ax2, ay2 = a
     bx1, by1, bx2, by2 = b
@@ -2184,9 +2105,7 @@ def _iter_boxes_from_raw(raw):
         if raw is None:
             return
 
-        # -------------------------
         # Case A: Ultralytics Results or [Results]
-        # -------------------------
         r0 = raw
         if isinstance(r0, list) and r0 and hasattr(r0[0], "boxes"):
             r0 = r0[0]
@@ -2202,9 +2121,7 @@ def _iter_boxes_from_raw(raw):
                 yield [float(x1), float(y1), float(x2), float(y2)], str(label), float(cf)
             return
 
-        # -------------------------
         # Case B: dict wrapper
-        # -------------------------
         if isinstance(r0, dict):
             dets = r0.get("detections") or r0.get("dets") or r0.get("boxes") or []
             if isinstance(dets, list):
@@ -2219,9 +2136,7 @@ def _iter_boxes_from_raw(raw):
                     yield [float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])], str(label), float(conf)
             return
 
-        # -------------------------
         # Case C: list[dict]
-        # -------------------------
         if isinstance(r0, list):
             for d in r0:
                 if not isinstance(d, dict):
@@ -2428,6 +2343,7 @@ def _extract_violation_boxes(raw):
                 "bbox": [float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])],
             })
     return out
+
 # --- Session helpers ---
 def _touch_session(sess):
     sess.last_access = time.time()
@@ -2488,72 +2404,6 @@ def _validate_dewarp_views(views):
         float(v.get("fov_deg", 90))
 
 # --- Evidence helpers ---
-def _crop_person_evidence(hi_view_bgr, vio_bbox_hi, scale=0.5, min_area=10_000, pad_ratio=0.08):
-    """
-    hi_view_bgr: high-res view image
-    vio_bbox_hi: [x1,y1,x2,y2] in hi_view coords
-    Returns: cropped image (person), or None if not found
-    """
-    if hi_view_bgr is None or hi_view_bgr.size == 0 or vio_bbox_hi is None:
-        return None
-
-    person_det = _get_person_detector()
-
-    small = cv2.resize(hi_view_bgr, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
-    r = person_det.detect(small)
-    if isinstance(r, list) and r and hasattr(r[0], "boxes"):
-        r = r[0]
-
-    if not hasattr(r, "boxes") or r.boxes is None or len(r.boxes) == 0:
-        return None
-
-    xyxy = r.boxes.xyxy.cpu().numpy()
-    cls_ids = r.boxes.cls.cpu().numpy().astype(int)
-    confs = r.boxes.conf.cpu().numpy()
-
-    best = None
-    best_score = 0.0
-
-    vx1, vy1, vx2, vy2 = vio_bbox_hi
-
-    for (x1, y1, x2, y2), cid, cf in zip(xyxy, cls_ids, confs):
-        if cid != 0:  # COCO person
-            continue
-
-        # scale back to hi_view coords
-        px1 = x1 / scale; py1 = y1 / scale
-        px2 = x2 / scale; py2 = y2 / scale
-
-        score = _box_iou([px1, py1, px2, py2], [vx1, vy1, vx2, vy2])
-        if score > best_score:
-            best_score = score
-            best = [px1, py1, px2, py2]
-
-    if best is None or best_score < 0.05:
-        return None
-
-    h, w = hi_view_bgr.shape[:2]
-    px1, py1, px2, py2 = best
-    bw = max(1, px2 - px1)
-    bh = max(1, py2 - py1)
-    pad = int(max(bw, bh) * pad_ratio)
-
-    X1 = _clamp_int(px1 - pad, 0, w - 1)
-    Y1 = _clamp_int(py1 - pad, 0, h - 1)
-    X2 = _clamp_int(px2 + pad, 0, w - 1)
-    Y2 = _clamp_int(py2 + pad, 0, h - 1)
-
-    if X2 <= X1 or Y2 <= Y1:
-        return None
-
-    crop = hi_view_bgr[Y1:Y2, X1:X2]
-    if crop.size == 0:
-        return None
-    if crop.shape[0] * crop.shape[1] < min_area:
-        return None
-
-    return crop
-
 def _match_person_bbox_for_violation(hi_view_bgr, vio_bbox_hi, scale=0.5) -> Optional[List[float]]:
     """
     Return best matching PERSON bbox [x1,y1,x2,y2] in hi_view coords
@@ -3421,13 +3271,36 @@ class LiveVideoSession:
                                             if tile is not None:
                                                 x0, y0, tw, th = int(tile["x0"]), int(tile["y0"]), int(tile["w"]), int(tile["h"])
                                                 tile_frame = frame_to_show[y0:y0+th, x0:x0+tw].copy()
-                                                bbox_use = info["local_bbox"]  # local coords within tile
+
+                                                # default fallback = current behavior
                                                 frame_use = tile_frame
+                                                bbox_use = info["local_bbox"]
+
+                                                # build high-res planar only for this event view
+                                                hi_planar = _build_highres_planar_from_fisheye(frame, vname)
+
+                                                if hi_planar is not None and getattr(hi_planar, "size", 0) != 0:
+                                                    hh, hw = hi_planar.shape[:2]
+
+                                                    # map local tile bbox -> high-res planar bbox
+                                                    lx1, ly1, lx2, ly2 = info["local_bbox"]
+                                                    sx_planar = hw / float(max(1, tw))
+                                                    sy_planar = hh / float(max(1, th))
+
+                                                    bbox_hi = [
+                                                        float(lx1) * sx_planar,
+                                                        float(ly1) * sy_planar,
+                                                        float(lx2) * sx_planar,
+                                                        float(ly2) * sy_planar,
+                                                    ]
+
+                                                    frame_use = hi_planar
+                                                    bbox_use = bbox_hi
                                             else:
                                                 frame_use = frame_to_show
                                                 bbox_use = info["bbox"]
 
-                                             # 1) match person bbox for this violation bbox
+                                            # 1) match person bbox for this violation bbox
                                             person_bbox = _match_person_bbox_for_violation(frame_use, bbox_use, scale=0.5)
                                             # 2) assign lightweight track id
                                             track_id = None
@@ -5223,7 +5096,7 @@ def start_webcam():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # ✅ start detector thread if not running
+    # start detector thread if not running
     if not _webcam_detect_running:
         _webcam_detect_running = True
         _webcam_detect_thread = threading.Thread(target=_webcam_detector_loop, daemon=True)
@@ -5502,10 +5375,7 @@ def set_attire_notifications_cfg(payload: dict = Body(...), user=Depends(get_cur
 async def attire_notifications_stream(request: Request, token: str = ""):
     user = get_current_user_from_token(token)
     if not user:
-        print("[NOTIF] SSE rejected: invalid token")
         raise HTTPException(status_code=401, detail="Unauthorized")
-
-    print("[NOTIF] SSE connect attempt by user:", user.get("username") if isinstance(user, dict) else user)
 
     q: asyncio.Queue = asyncio.Queue(maxsize=50)
     loop = asyncio.get_running_loop()
@@ -5513,7 +5383,6 @@ async def attire_notifications_stream(request: Request, token: str = ""):
 
     with ATTIRE_NOTIF_SUBS_LOCK:
         ATTIRE_NOTIF_SUBS.add(sub)
-        print("[NOTIF] SSE subscriber added. total =", len(ATTIRE_NOTIF_SUBS))
 
     async def gen():
         try:
@@ -5525,22 +5394,18 @@ async def attire_notifications_stream(request: Request, token: str = ""):
 
             while True:
                 if await request.is_disconnected():
-                    print("[NOTIF] SSE client disconnected")
                     break
 
                 try:
                     item = await asyncio.wait_for(q.get(), timeout=10.0)
-                    print("[NOTIF] SSE sending plain message:", item)
                     yield f"data: {json.dumps(item)}\n\n"
 
                 except asyncio.TimeoutError:
-                    print("[NOTIF] SSE sending ping")
                     yield ": ping\n\n"
 
         finally:
             with ATTIRE_NOTIF_SUBS_LOCK:
                 ATTIRE_NOTIF_SUBS.discard(sub)
-                print("[NOTIF] SSE subscriber removed. total =", len(ATTIRE_NOTIF_SUBS))
 
     origin = request.headers.get("origin", "")
     sse_headers = {
